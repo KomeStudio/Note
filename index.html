@@ -158,17 +158,18 @@
   <script>
     // Firebase Config
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyBjIbVeLXbYenobP2kW_eTXGgB-oqLsvH4",
+    authDomain: "kome-note.firebaseapp.com",
+    projectId: "kome-note",
+    storageBucket: "kome-note.firebasestorage.app",
+    messagingSenderId: "742086142369",
+    appId: "1:742086142369:web:61e15a3a59ab38267d03e0",
+    measurementId: "G-D4ECNQHD58"
     };
 
     let db = null;
     let auth = null;
-    if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+    if (firebaseConfig.apiKey !== "AIzaSyBjIbVeLXbYenobP2kW_eTXGgB-oqLsvH4") {
       firebase.initializeApp(firebaseConfig);
       db = firebase.firestore();
       auth = firebase.auth();
