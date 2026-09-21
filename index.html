@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kome Notepad</title>
+  <link rel="icon" type="image/png" href="./KomE.svg">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 font-sans antialiased h-screen overflow-hidden">
+
+  <!-- ================= AUTH MODAL ================= -->
+  <div id="auth-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8 border border-gray-100 dark:border-gray-700">
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-500/10 text-brand-600 dark:text-brand-500 mb-3">
+          <i data-lucide="notebook-pen" class="w-8 h-8"></i>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight">Kome Notepad</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Lightweight, fast & seamless note taking</p>
+      </div>
+
+      <!-- Auth Form with Email & Password -->
+      <div class="space-y-3">
+        <div>
+          <input id="email-input" type="email" placeholder="Email address" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700/50">
+        </div>
+        <div>
+          <input id="password-input" type="password" placeholder="Password" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700/50">
+        </div>
+        <button id="btn-email-auth" class="w-full bg-brand-600 hover:bg-brand-700 text-white py-2.5 px-4 rounded-xl font-medium transition text-sm">
+          Sign In / Sign Up
+        </button>
+
+        <div class="relative my-3">
+          <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200 dark:border-gray-700"></div></div>
+          <div class="relative flex justify-center text-xs uppercase"><span class="bg-white dark:bg-gray-800 px-2 text-gray-400">or</span></div>
+        </div>
+
+        <button id="btn-google" class="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 py-2.5 px-4 rounded-xl font-medium text-sm transition">
+          <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.28v3.15C3.27 21.31 7.37 24 12 24z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.28C.46 8.21 0 10.05 0 12s.46 3.79 1.28 5.42l4-3.15z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.37 0 3.27 2.69 1.28 6.58l4 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/></svg>
+          Sign in with Google
+        </button>
+
+        <button id="btn-guest" class="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-2.5 px-4 rounded-xl font-medium text-sm transition mt-2">
+          <i data-lucide="user-check" class="w-4 h-4"></i>
+          Continue as Guest (Local)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MAIN APP LAYOUT ================= -->
+  <div class="flex h-screen w-full overflow-hidden">
+    <!-- Sidebar / Notes List -->
+    <aside id="sidebar" class="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300 z-10">
+      <!-- Top Header -->
+      <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="notebook-pen" class="w-6 h-6 text-brand-600 dark:text-brand-500"></i>
+          <span class="font-bold text-lg tracking-tight">Kome Notepad</span>
+        </div>
+        <button id="theme-toggle" class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition" title="Toggle Theme">
+          <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+          <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
+        </button>
+      </div>
+
+      <!-- Action Button -->
+      <div class="p-3">
+        <button id="btn-new-note" class="w-full flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2 px-4 rounded-xl shadow-sm transition">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          New Note
+        </button>
+      </div>
+
+      <!-- Notes List -->
+      <div id="notes-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+        <!-- Notes rendered dynamically -->
+      </div>
+
+      <!-- Account / Mode Switch Footer (Bottom Sidebar) -->
+      <div class="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 min-w-0">
+            <i data-lucide="user" class="w-4 h-4 text-gray-500 shrink-0"></i>
+            <div class="truncate text-xs">
+              <span id="user-status-text" class="font-medium text-gray-700 dark:text-gray-300 block truncate">Guest Mode</span>
+              <span id="sync-status-indicator" class="text-amber-600 dark:text-amber-400 block text-[10px]">Local Storage</span>
+            </div>
+          </div>
+          <button id="btn-account-switch" class="text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-2.5 py-1 rounded-lg font-medium transition shrink-0">
+            Switch
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace / Editor -->
+    <main class="flex-1 flex flex-col bg-white dark:bg-gray-900 h-full overflow-hidden">
+      <!-- Top Action Bar -->
+      <header class="h-14 px-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between gap-4">
+        <input id="note-title" type="text" placeholder="Untitled Note..." class="bg-transparent text-xl font-bold focus:outline-none flex-1 text-gray-900 dark:text-gray-100 placeholder-gray-400">
+        
+        <div class="flex items-center gap-2">
+          <button id="btn-download" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition" title="Export as .txt">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>Export .txt</span>
+          </button>
+          <button id="btn-delete" class="p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition" title="Delete Note">
+            <i data-lucide="trash-2" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Editor Area -->
+      <div class="flex-1 p-4 overflow-hidden flex flex-col">
+        <textarea id="note-content" placeholder="Start typing your note here..." class="w-full flex-1 bg-transparent resize-none focus:outline-none font-mono text-base text-gray-800 dark:text-gray-200 placeholder-gray-400 leading-relaxed"></textarea>
+      </div>
+
+      <!-- Status Bar -->
+      <footer class="h-8 px-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between text-xs text-gray-400">
+        <span id="save-status">Ready</span>
+        <div class="flex gap-4">
+          <span id="word-count">0 words</span>
+          <span id="char-count">0 characters</span>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- JavaScript Logic -->
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    let db = null;
+    let auth = null;
+    if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      auth = firebase.auth();
+    }
+
+    // App State
+    let currentMode = 'guest'; // 'guest' | 'cloud'
+    let currentUser = null;
+    let notes = [];
+    let currentNoteId = null;
+    let saveTimeout = null;
+
+    // DOM Elements
+    const authModal = document.getElementById('auth-modal');
+    const emailInput = document.getElementById('email-input');
+    const passwordInput = document.getElementById('password-input');
+    const btnEmailAuth = document.getElementById('btn-email-auth');
+    const btnGoogle = document.getElementById('btn-google');
+    const btnGuest = document.getElementById('btn-guest');
+    const btnAccountSwitch = document.getElementById('btn-account-switch');
+    const userStatusText = document.getElementById('user-status-text');
+    const syncStatusIndicator = document.getElementById('sync-status-indicator');
+    
+    const notesList = document.getElementById('notes-list');
+    const noteTitle = document.getElementById('note-title');
+    const noteContent = document.getElementById('note-content');
+    const btnNewNote = document.getElementById('btn-new-note');
+    const btnDelete = document.getElementById('btn-delete');
+    const btnDownload = document.getElementById('btn-download');
+    const themeToggle = document.getElementById('theme-toggle');
+    const saveStatus = document.getElementById('save-status');
+    const wordCount = document.getElementById('word-count');
+    const charCount = document.getElementById('char-count');
+
+    lucide.createIcons();
+
+    // Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      }
+
+      const savedMode = localStorage.getItem('kome_notepad_mode');
+      if (savedMode === 'guest' || !auth) {
+        enableGuestMode();
+      }
+    });
+
+    themeToggle.addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    });
+
+    // Auth & Mode Switching
+    btnGuest.addEventListener('click', () => enableGuestMode());
+
+    btnAccountSwitch.addEventListener('click', () => {
+      authModal.classList.remove('hidden');
+    });
+
+    if (auth) {
+      btnEmailAuth.addEventListener('click', () => {
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+        if (!email || !password) return alert('Please enter both Email and Password');
+
+        auth.signInWithEmailAndPassword(email, password)
+          .catch(err => {
+            if (err.code === 'auth/user-not-found') {
+              return auth.createUserWithEmailAndPassword(email, password);
+            }
+            throw err;
+          })
+          .then(cred => {
+            if (cred) {
+              currentUser = cred.user;
+              enableCloudMode();
+            }
+          })
+          .catch(err => alert('Auth error: ' + err.message));
+      });
+
+      btnGoogle.addEventListener('click', () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).then(result => {
+          currentUser = result.user;
+          enableCloudMode();
+        }).catch(err => alert('Auth error: ' + err.message));
+      });
+
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          currentUser = user;
+          enableCloudMode();
+        }
+      });
+    }
+
+    function enableGuestMode() {
+      currentMode = 'guest';
+      localStorage.setItem('kome_notepad_mode', 'guest');
+      userStatusText.innerText = 'Guest Account';
+      syncStatusIndicator.innerText = 'Local Storage';
+      syncStatusIndicator.className = 'text-amber-600 dark:text-amber-400 block text-[10px] font-medium';
+      authModal.classList.add('hidden');
+      loadGuestNotes();
+    }
+
+    function enableCloudMode() {
+      currentMode = 'cloud';
+      localStorage.setItem('kome_notepad_mode', 'cloud');
+      userStatusText.innerText = currentUser ? currentUser.email : 'Cloud User';
+      syncStatusIndicator.innerText = 'Cloud Sync Active';
+      syncStatusIndicator.className = 'text-green-600 dark:text-green-400 block text-[10px] font-medium';
+      authModal.classList.add('hidden');
+      loadCloudNotes();
+    }
+
+    // Storage Management
+    function loadGuestNotes() {
+      const data = localStorage.getItem('kome_notepad_notes');
+      notes = data ? JSON.parse(data) : [];
+      if (notes.length === 0) createNewNote();
+      else selectNote(notes[0].id);
+      renderNotesList();
+    }
+
+    function loadCloudNotes() {
+      if (!db || !currentUser) return;
+      db.collection('notes').where('userId', '==', currentUser.uid)
+        .onSnapshot(snapshot => {
+          notes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          notes.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+          if (notes.length === 0) createNewNote();
+          else if (!currentNoteId) selectNote(notes[0].id);
+          renderNotesList();
+        });
+    }
+
+    function saveCurrentNote() {
+      if (!currentNoteId) return;
+      saveStatus.innerText = 'Saving...';
+
+      const title = noteTitle.value.trim() || 'Untitled Note';
+      const content = noteContent.value;
+      const updatedAt = Date.now();
+
+      const index = notes.findIndex(n => n.id === currentNoteId);
+      if (index !== -1) {
+        notes[index] = { ...notes[index], title, content, updatedAt };
+      }
+
+      if (currentMode === 'guest') {
+        localStorage.setItem('kome_notepad_notes', JSON.stringify(notes));
+        saveStatus.innerText = 'Saved locally';
+        renderNotesList();
+      } else if (currentMode === 'cloud' && db) {
+        db.collection('notes').doc(currentNoteId).set({
+          userId: currentUser.uid,
+          title,
+          content,
+          updatedAt
+        }, { merge: true }).then(() => {
+          saveStatus.innerText = 'Saved to Cloud';
+        });
+      }
+    }
+
+    [noteTitle, noteContent].forEach(el => {
+      el.addEventListener('input', () => {
+        updateStats();
+        saveStatus.innerText = 'Unsaved changes...';
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(saveCurrentNote, 600);
+      });
+    });
+
+    // Note Actions
+    btnNewNote.addEventListener('click', () => createNewNote());
+
+    function createNewNote() {
+      const newNote = {
+        id: currentMode === 'guest' ? 'guest_' + Date.now() : db.collection('notes').doc().id,
+        title: 'Untitled Note',
+        content: '',
+        updatedAt: Date.now()
+      };
+
+      if (currentMode === 'guest') {
+        notes.unshift(newNote);
+        localStorage.setItem('kome_notepad_notes', JSON.stringify(notes));
+        selectNote(newNote.id);
+        renderNotesList();
+      } else if (currentMode === 'cloud' && db) {
+        db.collection('notes').doc(newNote.id).set({
+          userId: currentUser.uid,
+          ...newNote
+        }).then(() => selectNote(newNote.id));
+      }
+    }
+
+    function selectNote(id) {
+      currentNoteId = id;
+      const note = notes.find(n => n.id === id);
+      if (note) {
+        noteTitle.value = note.title || '';
+        noteContent.value = note.content || '';
+        updateStats();
+        renderNotesList();
+        saveStatus.innerText = 'Loaded';
+      }
+    }
+
+    btnDelete.addEventListener('click', () => {
+      if (!currentNoteId) return;
+      if (!confirm('Are you sure you want to delete this note?')) return;
+
+      if (currentMode === 'guest') {
+        notes = notes.filter(n => n.id !== currentNoteId);
+        localStorage.setItem('kome_notepad_notes', JSON.stringify(notes));
+        currentNoteId = notes.length > 0 ? notes[0].id : null;
+        if (!currentNoteId) createNewNote();
+        else selectNote(currentNoteId);
+        renderNotesList();
+      } else if (currentMode === 'cloud' && db) {
+        db.collection('notes').doc(currentNoteId).delete().then(() => {
+          currentNoteId = null;
+        });
+      }
+    });
+
+    btnDownload.addEventListener('click', () => {
+      const title = (noteTitle.value.trim() || 'note') + '.txt';
+      const blob = new Blob([noteContent.value], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = title;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    function renderNotesList() {
+      notesList.innerHTML = '';
+      notes.forEach(note => {
+        const isActive = note.id === currentNoteId;
+        const div = document.createElement('div');
+        div.className = `p-3 rounded-xl cursor-pointer transition select-none ${
+          isActive 
+            ? 'bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400 font-medium' 
+            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300'
+        }`;
+        div.onclick = () => selectNote(note.id);
+        div.innerHTML = `
+          <div class="truncate text-sm font-semibold">${escapeHtml(note.title || 'Untitled Note')}</div>
+          <div class="truncate text-xs text-gray-400 dark:text-gray-500 mt-1">${escapeHtml(note.content || 'Empty note')}</div>
+        `;
+        notesList.appendChild(div);
+      });
+    }
+
+    function updateStats() {
+      const text = noteContent.value;
+      const chars = text.length;
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      charCount.innerText = `${chars} characters`;
+      wordCount.innerText = `${words} words`;
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+  </script>
+</body>
+</html>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cloud Notepad Pro</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.1); }
+    ::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.4); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.6); }
+  </style>
+</head>
+<body class="h-full flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- AUTH MODAL -->
+  <div id="authModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl relative">
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand-500/10 text-brand-500 mb-3">
+          <i data-lucide="file-text" class="w-6 h-6"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-white">Cloud Notepad Pro</h2>
+        <p class="text-slate-400 text-sm mt-1">Đăng nhập để đồng bộ ghi chú đám mây của bạn</p>
+      </div>
+
+      <!-- Auth Form -->
+      <form id="authForm" onsubmit="handleEmailAuth(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Email</label>
+          <input type="email" id="authEmail" required placeholder="you@example.com" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Mật khẩu</label>
+          <input type="password" id="authPassword" required placeholder="••••••••" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition">
+        </div>
+        
+        <div id="authError" class="text-red-400 text-xs hidden text-center"></div>
+
+        <button type="submit" id="authSubmitBtn" class="w-full py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-medium rounded-lg transition shadow-lg shadow-brand-600/20 flex items-center justify-center gap-2">
+          <span>Đăng nhập / Đăng ký</span>
+        </button>
+      </form>
+
+      <div class="relative my-6">
+        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-800"></div></div>
+        <div class="relative flex justify-center text-xs uppercase"><span class="bg-slate-900 px-2 text-slate-500">Hoặc</span></div>
+      </div>
+
+      <button onclick="handleGoogleAuth()" class="w-full py-2.5 border border-slate-700 hover:bg-slate-800 text-slate-200 font-medium rounded-lg transition flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" viewBox="0 0 24 24">
+          <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.2 9 5 12 5z"/>
+          <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/>
+          <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 12 0 12s.7 4.3 1.9 6.7l3.7-2.9z"/>
+          <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.2-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"/>
+        </svg>
+        Đăng nhập với Google
+      </button>
+      
+      <p class="text-xs text-slate-500 text-center mt-6">Ứng dụng hoạt động trực tiếp trong trình duyệt & hỗ trợ Cloudflare Pages.</p>
+    </div>
+  </div>
+
+  <!-- MAIN APPLICATION LAYOUT -->
+  <div class="flex-1 flex overflow-hidden">
+    <!-- SIDEBAR: LIST OF NOTES -->
+    <aside class="w-80 bg-slate-950 border-r border-slate-800 flex flex-col flex-shrink-0">
+      <!-- Header Sidebar -->
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="p-2 bg-brand-500/10 text-brand-500 rounded-lg">
+            <i data-lucide="edit-3" class="w-5 h-5"></i>
+          </div>
+          <span class="font-bold text-slate-100 tracking-wide">Cloud Notepad</span>
+        </div>
+        <button onclick="createNewNote()" class="p-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg transition flex items-center gap-1 text-sm font-medium shadow-md">
+          <i data-lucide="plus" class="w-4 h-4"></i> Mới
+        </button>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="p-3 border-b border-slate-800/60">
+        <div class="relative">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-500"></i>
+          <input type="text" id="searchInput" oninput="renderNotesList()" placeholder="Tìm kiếm ghi chú..." class="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500">
+        </div>
+      </div>
+
+      <!-- Notes List Container -->
+      <div id="notesList" class="flex-1 overflow-y-auto divide-y divide-slate-800/40 p-2 space-y-1">
+        <!-- Dynamic content will be injected here -->
+      </div>
+
+      <!-- User Profile Footer -->
+      <div id="userFooter" class="p-3 bg-slate-900/50 border-t border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2 overflow-hidden">
+          <div id="userAvatar" class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300 uppercase flex-shrink-0">
+            U
+          </div>
+          <div class="truncate">
+            <p id="userName" class="text-xs font-medium text-slate-200 truncate">Khách</p>
+            <p id="userEmail" class="text-[10px] text-slate-500 truncate">Chưa đăng nhập</p>
+          </div>
+        </div>
+        <button id="authBtn" onclick="toggleAuthModal()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition" title="Đăng nhập / Đăng xuất">
+          <i data-lucide="log-in" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN EDITOR AREA -->
+    <main class="flex-1 flex flex-col bg-slate-900 relative">
+      <!-- Top Action Bar -->
+      <div class="p-3 border-b border-slate-800 bg-slate-900/80 backdrop-blur flex items-center justify-between gap-4">
+        <div class="flex-1 max-w-xl">
+          <input type="text" id="noteTitle" oninput="handleContentChange()" placeholder="Tiêu đề ghi chú..." class="w-full bg-transparent text-lg font-semibold text-white placeholder-slate-600 focus:outline-none">
+        </div>
+        
+        <div class="flex items-center gap-2">
+          <!-- Status Indicator -->
+          <span id="saveStatus" class="text-xs text-slate-500 mr-2 flex items-center gap-1">
+            <i data-lucide="check" class="w-3.5 h-3.5"></i> Đã đồng bộ
+          </span>
+
+          <button onclick="downloadAsTxt()" class="px-3 py-1.5 border border-slate-700 hover:bg-slate-800 text-slate-300 rounded-lg text-xs font-medium transition flex items-center gap-1.5" title="Tải xuống tập tin .txt">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i> Export .TXT
+          </button>
+
+          <button onclick="deleteCurrentNote()" class="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg transition" title="Xóa ghi chú">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Text Area -->
+      <div class="flex-1 p-4 md:p-6 flex flex-col">
+        <textarea id="noteBody" oninput="handleContentChange()" placeholder="Bắt đầu viết nội dung của bạn ở đây..." class="w-full flex-1 bg-transparent text-slate-200 placeholder-slate-600 resize-none focus:outline-none font-mono text-sm leading-relaxed"></textarea>
+      </div>
+
+      <!-- Footer Info -->
+      <div class="px-6 py-2 border-t border-slate-800/40 text-[11px] text-slate-500 flex justify-between items-center">
+        <span id="wordCount">0 từ | 0 ký tự</span>
+        <span id="lastSavedTime">Chưa lưu</span>
+      </div>
+    </main>
+  </div>
+
+  <!-- APPLICATION LOGIC & FIREBASE CONFIG -->
+  <script>
+    // ⚙️ FIREBASE CONFIGURATION
+    // Để lưu dữ liệu thực tế lên Firebase Cloud, hãy thay cấu hình dưới đây bằng Project của bạn!
+    // Nếu giữ nguyên, ứng dụng sẽ hoạt động ở chế độ "Lưu cục bộ (Local Storage)".
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    let isFirebaseConfigured = false;
+    let db = null;
+    let auth = null;
+
+    try {
+      if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        auth = firebase.auth();
+        isFirebaseConfigured = true;
+      }
+    } catch (e) {
+      console.warn("Firebase chưa được cấu hình hoàn chỉnh. Đang chạy chế độ Demo LocalStorage.", e);
+    }
+
+    // STATE MANAGEMENT
+    let currentUser = null;
+    let notes = [];
+    let currentNoteId = null;
+    let saveTimeout = null;
+
+    // INITIALIZATION
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      initApp();
+    });
+
+    function initApp() {
+      if (isFirebaseConfigured && auth) {
+        auth.onAuthStateChanged(user => {
+          currentUser = user;
+          updateUserUI();
+          if (user) {
+            hideAuthModal();
+            loadNotesFromFirebase();
+          } else {
+            loadNotesFromLocalStorage();
+          }
+        });
+      } else {
+        loadNotesFromLocalStorage();
+        updateUserUI();
+      }
+    }
+
+    // AUTHENTICATION LOGIC
+    function toggleAuthModal() {
+      if (currentUser && auth) {
+        if (confirm("Bạn có muốn đăng xuất?")) {
+          auth.signOut().then(() => {
+            currentUser = null;
+            notes = [];
+            loadNotesFromLocalStorage();
+            updateUserUI();
+          });
+        }
+      } else {
+        document.getElementById('authModal').classList.toggle('hidden');
+      }
+    }
+
+    function hideAuthModal() {
+      document.getElementById('authModal').classList.add('hidden');
+    }
+
+    async function handleEmailAuth(e) {
+      e.preventDefault();
+      if (!isFirebaseConfigured) {
+        alert("Bạn chưa điền Firebase Config vào mã nguồn HTML! Ứng dụng hiện dùng bộ nhớ duyệt trình (LocalStorage).");
+        hideAuthModal();
+        return;
+      }
+
+      const email = document.getElementById('authEmail').value;
+      const password = document.getElementById('authPassword').value;
+      const errorEl = document.getElementById('authError');
+      errorEl.classList.add('hidden');
+
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+      } catch (err) {
+        if (err.code === 'auth/user-not-found') {
+          try {
+            await auth.createUserWithEmailAndPassword(email, password);
+          } catch (createErr) {
+            errorEl.innerText = createErr.message;
+            errorEl.classList.remove('hidden');
+          }
+        } else {
+          errorEl.innerText = err.message;
+          errorEl.classList.remove('hidden');
+        }
+      }
+    }
+
+    async function handleGoogleAuth() {
+      if (!isFirebaseConfigured) {
+        alert("Bạn chưa điền Firebase Config vào mã nguồn! Đang dùng LocalStorage.");
+        hideAuthModal();
+        return;
+      }
+      const provider = new firebase.auth.GoogleAuthProvider();
+      try {
+        await auth.signInWithPopup(provider);
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    function updateUserUI() {
+      const nameEl = document.getElementById('userName');
+      const emailEl = document.getElementById('userEmail');
+      const avatarEl = document.getElementById('userAvatar');
+      const authBtn = document.getElementById('authBtn');
+
+      if (currentUser) {
+        nameEl.innerText = currentUser.displayName || 'Người dùng';
+        emailEl.innerText = currentUser.email;
+        avatarEl.innerText = (currentUser.email || 'U')[0].toUpperCase();
+        authBtn.innerHTML = `<i data-lucide="log-out" class="w-4 h-4"></i>`;
+      } else {
+        nameEl.innerText = 'Khách (Offline)';
+        emailEl.innerText = 'Lưu ở máy local';
+        avatarEl.innerText = 'G';
+        authBtn.innerHTML = `<i data-lucide="log-in" class="w-4 h-4"></i>`;
+      }
+      lucide.createIcons();
+    }
+
+    // NOTES DATA OPERATIONS
+    function loadNotesFromLocalStorage() {
+      const stored = localStorage.getItem('notepad_notes');
+      notes = stored ? JSON.parse(stored) : [];
+      if (notes.length === 0) {
+        createNewNote(false);
+      } else {
+        selectNote(notes[0].id);
+      }
+      renderNotesList();
+    }
+
+    function loadNotesFromFirebase() {
+      if (!db || !currentUser) return;
+
+      db.collection('notes')
+        .where('userId', '==', currentUser.uid)
+        .orderBy('updatedAt', 'desc')
+        .onSnapshot(snapshot => {
+          notes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          if (notes.length === 0) {
+            createNewNote(true);
+          } else if (!currentNoteId || !notes.find(n => n.id === currentNoteId)) {
+            selectNote(notes[0].id);
+          }
+          renderNotesList();
+        });
+    }
+
+    function createNewNote(shouldSave = true) {
+      const newNote = {
+        id: 'note_' + Date.now(),
+        title: 'Ghi chú mới',
+        body: '',
+        updatedAt: new Date().toISOString(),
+        userId: currentUser ? currentUser.uid : null
+      };
+
+      notes.unshift(newNote);
+      selectNote(newNote.id);
+
+      if (shouldSave) {
+        saveNoteToStorage(newNote);
+      }
+      renderNotesList();
+    }
+
+    function selectNote(id) {
+      currentNoteId = id;
+      const note = notes.find(n => n.id === id);
+      if (!note) return;
+
+      document.getElementById('noteTitle').value = note.title || '';
+      document.getElementById('noteBody').value = note.body || '';
+
+      updateWordCount();
+      renderNotesList();
+    }
+
+    function handleContentChange() {
+      document.getElementById('saveStatus').innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i> Đang lưu...`;
+      lucide.createIcons();
+
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(() => {
+        const title = document.getElementById('noteTitle').value.trim() || 'Không có tiêu đề';
+        const body = document.getElementById('noteBody').value;
+
+        const noteIndex = notes.findIndex(n => n.id === currentNoteId);
+        if (noteIndex !== -1) {
+          notes[noteIndex].title = title;
+          notes[noteIndex].body = body;
+          notes[noteIndex].updatedAt = new Date().toISOString();
+
+          saveNoteToStorage(notes[noteIndex]);
+          renderNotesList();
+
+          document.getElementById('saveStatus').innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i> Đã lưu`;
+          document.getElementById('lastSavedTime').innerText = `Lưu lần cuối: ${new Date().toLocaleTimeString()}`;
+          lucide.createIcons();
+        }
+      }, 500);
+
+      updateWordCount();
+    }
+
+    function saveNoteToStorage(note) {
+      if (currentUser && isFirebaseConfigured) {
+        db.collection('notes').doc(note.id).set(note, { merge: true });
+      } else {
+        localStorage.setItem('notepad_notes', JSON.stringify(notes));
+      }
+    }
+
+    function deleteCurrentNote() {
+      if (!currentNoteId) return;
+      if (!confirm("Bạn có chắc chắn muốn xóa ghi chú này?")) return;
+
+      const idToDelete = currentNoteId;
+      notes = notes.filter(n => n.id !== idToDelete);
+
+      if (currentUser && isFirebaseConfigured) {
+        db.collection('notes').doc(idToDelete).delete();
+      } else {
+        localStorage.setItem('notepad_notes', JSON.stringify(notes));
+      }
+
+      if (notes.length > 0) {
+        selectNote(notes[0].id);
+      } else {
+        createNewNote(true);
+      }
+      renderNotesList();
+    }
+
+    // EXPORT FILE .TXT
+    function downloadAsTxt() {
+      const note = notes.find(n => n.id === currentNoteId);
+      if (!note) return;
+
+      const filename = `${(note.title || 'ghi-chu').replace(/[^a-z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/gi, '_')}.txt`;
+      const blob = new Blob([`${note.title}\n\n${note.body}`], { type: 'text/plain;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    // HELPER FUNCTIONS
+    function updateWordCount() {
+      const body = document.getElementById('noteBody').value;
+      const chars = body.length;
+      const words = body.trim() ? body.trim().split(/\s+/).length : 0;
+      document.getElementById('wordCount').innerText = `${words} từ | ${chars} ký tự`;
+    }
+
+    function renderNotesList() {
+      const search = (document.getElementById('searchInput').value || '').toLowerCase();
+      const listContainer = document.getElementById('notesList');
+      listContainer.innerHTML = '';
+
+      const filteredNotes = notes.filter(n => 
+        (n.title && n.title.toLowerCase().includes(search)) || 
+        (n.body && n.body.toLowerCase().includes(search))
+      );
+
+      filteredNotes.forEach(note => {
+        const isActive = note.id === currentNoteId;
+        const div = document.createElement('div');
+        div.onclick = () => selectNote(note.id);
+        div.className = `p-3 rounded-xl cursor-pointer transition flex flex-col gap-1 ${
+          isActive 
+            ? 'bg-brand-600/10 border border-brand-500/30' 
+            : 'hover:bg-slate-900 border border-transparent'
+        }`;
+
+        const formattedDate = new Date(note.updatedAt).toLocaleDateString('vi-VN', {
+          day: '2-digit', month: '2-digit'
+        });
+
+        div.innerHTML = `
+          <div class="flex items-center justify-between">
+            <h4 class="text-sm font-semibold truncate ${isActive ? 'text-brand-400' : 'text-slate-200'}">
+              ${escapeHtml(note.title || 'Không có tiêu đề')}
+            </h4>
+            <span class="text-[10px] text-slate-500 flex-shrink-0">${formattedDate}</span>
+          </div>
+          <p class="text-xs text-slate-400 line-clamp-2 font-mono">
+            ${escapeHtml(note.body || 'Chưa có nội dung...')}
+          </p>
+        `;
+
+        listContainer.appendChild(div);
+      });
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
