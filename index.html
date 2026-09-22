@@ -169,14 +169,22 @@
 
     let db = null;
     let auth = null;
-    if (firebaseConfig.apiKey !== "AIzaSyBjIbVeLXbYenobP2kW_eTXGgB-oqLsvH4") {
-      firebase.initializeApp(firebaseConfig);
-      db = firebase.firestore();
-      auth = firebase.auth();
+    // Kiểm tra và khởi tạo Firebase
+    if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "AIzaSyBjIbVeLXbYenobP2kW_eTXGgB-oqLsvH4") {
+      try {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        auth = firebase.auth();
+        console.log("Firebase initialized successfully");
+      } catch (e) {
+        console.error("Firebase Initialization Error:", e);
+      }
+    } else {
+      console.warn("Firebase Config Key is missing or default value used.");
     }
 
     // App State
-    let currentMode = 'guest'; // 'guest' | 'cloud'
+    let currentMode = 'guest';
     let currentUser = null;
     let notes = [];
     let currentNoteId = null;
@@ -230,36 +238,58 @@
       authModal.classList.remove('hidden');
     });
 
+    // XỬ LÝ ĐĂNG NHẬP / ĐĂNG KÝ EMAIL & PASSWORD
+    btnEmailAuth.addEventListener('click', async () => {
+      if (!auth) {
+        alert("Firebase Config setup is incomplete!");
+        return;
+      }
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      if (!email || !password) return alert('Please enter both Email and Password');
+
+      console.log("Attempting Auth for:", email);
+      try {
+        // Thu nhập đăng nhập trước
+        const cred = await auth.signInWithEmailAndPassword(email, password);
+        currentUser = cred.user;
+        console.log("Logged in:", currentUser.email);
+        enableCloudMode();
+      } catch (err) {
+        console.log("SignIn Error Code:", err.code);
+        // Nếu không tìm thấy user hoặc sai thông tin, tự động tạo tài khoản mới
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
+          try {
+            console.log("Attempting Registering new user...");
+            const cred = await auth.createUserWithEmailAndPassword(email, password);
+            currentUser = cred.user;
+            console.log("Registered & Logged in:", currentUser.email);
+            enableCloudMode();
+          } catch (createErr) {
+            console.error("Register Error:", createErr);
+            alert('Authentication failed: ' + createErr.message);
+          }
+        } else {
+          console.error("Auth Error:", err);
+          alert('Auth Error: ' + err.message);
+        }
+      }
+    });
+
+    // XỬ LÝ ĐĂNG NHẬP GOOGLE
+    btnGoogle.addEventListener('click', () => {
+      if (!auth) return alert("Firebase Config setup is incomplete!");
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).then(result => {
+        currentUser = result.user;
+        enableCloudMode();
+      }).catch(err => {
+        console.error("Google Auth Error:", err);
+        alert('Google Auth error: ' + err.message);
+      });
+    });
+
     if (auth) {
-      btnEmailAuth.addEventListener('click', () => {
-        const email = emailInput.value.trim();
-        const password = passwordInput.value;
-        if (!email || !password) return alert('Please enter both Email and Password');
-
-        auth.signInWithEmailAndPassword(email, password)
-          .catch(err => {
-            if (err.code === 'auth/user-not-found') {
-              return auth.createUserWithEmailAndPassword(email, password);
-            }
-            throw err;
-          })
-          .then(cred => {
-            if (cred) {
-              currentUser = cred.user;
-              enableCloudMode();
-            }
-          })
-          .catch(err => alert('Auth error: ' + err.message));
-      });
-
-      btnGoogle.addEventListener('click', () => {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).then(result => {
-          currentUser = result.user;
-          enableCloudMode();
-        }).catch(err => alert('Auth error: ' + err.message));
-      });
-
       auth.onAuthStateChanged(user => {
         if (user) {
           currentUser = user;
@@ -306,6 +336,8 @@
           if (notes.length === 0) createNewNote();
           else if (!currentNoteId) selectNote(notes[0].id);
           renderNotesList();
+        }, error => {
+          console.error("Firestore error:", error);
         });
     }
 
@@ -334,6 +366,9 @@
           updatedAt
         }, { merge: true }).then(() => {
           saveStatus.innerText = 'Saved to Cloud';
+        }).catch(err => {
+          console.error("Save Note Error:", err);
+          saveStatus.innerText = 'Save Error';
         });
       }
     }
